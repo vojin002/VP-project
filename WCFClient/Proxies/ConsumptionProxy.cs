@@ -22,9 +22,19 @@ namespace WCFClient.Proxies
             communicationObj = (ICommunicationObject)client;
         }
 
-        public void Send(DailyConsumptionSample sample)
+        public void StartSession(SessionMeta meta)
+        {
+            client.StartSession(meta);
+        }
+
+        public void PushSample(DailyConsumptionSample sample)
         {
             client.PushSample(sample);
+        }
+
+        public void EndSession()
+        {
+            client.EndSession();
         }
 
         public void Dispose()
