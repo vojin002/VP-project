@@ -16,7 +16,7 @@ namespace WCFClient.Readers
 
         private readonly string _countryCode;
         private int _timeIndex;
-        private int _currentIndex;
+        private int _actualIndex;
         private int _forecastIndex;
 
         public CsvReader(string filePath, string countryCode, string rejectedPath)
@@ -37,12 +37,12 @@ namespace WCFClient.Readers
             string[] cols = header.Split(',');
 
             _timeIndex = FindIndex(cols, "utc_timestamp");
-            _currentIndex = FindIndex(cols, _countryCode + "_load_actual_entsoe_transparency");
+            _actualIndex = FindIndex(cols, _countryCode + "_load_actual_entsoe_transparency");
             _forecastIndex = FindIndex(cols, _countryCode + "_load_forecast_entsoe_transparency");
 
             if (_timeIndex < 0) throw new InvalidDataException("CSV does not contain col utc_timestamp.");
 
-            if (_currentIndex < 0 || _forecastIndex < 0) throw new InvalidDataException("CSV does not contain cols for country: " + _countryCode);
+            if (_actualIndex < 0 || _forecastIndex < 0) throw new InvalidDataException("CSV does not contain cols for country: " + _countryCode);
         }
 
         private static int FindIndex(string[] cols, string name)
@@ -79,10 +79,10 @@ namespace WCFClient.Readers
                     continue;
                 }
 
-                double current = ParseValue(parts[_currentIndex]);
+                double actual = ParseValue(parts[_actualIndex]);
                 double forecast = ParseValue(parts[_forecastIndex]);
 
-                if (double.IsNaN(current) && double.IsNaN(forecast))
+                if (double.IsNaN(actual) && double.IsNaN(forecast))
                 {
                     _rejectedWriter.WriteLine(rowNum + ", " + line + ", both fields are not a number");
                     rowNum++;
@@ -92,7 +92,7 @@ namespace WCFClient.Readers
                 DateTime day = time.Date;
                 if (!dailyGroups.ContainsKey(day)) dailyGroups[day] = new List<IntervalData>();
 
-                dailyGroups[day].Add(new IntervalData { Time = time, Current = current, Forecast = forecast });
+                dailyGroups[day].Add(new IntervalData { Time = time, Actual = actual, Forecast = forecast });
                 rowNum++;
             }
 
@@ -108,20 +108,20 @@ namespace WCFClient.Readers
             {
                 List<IntervalData> intervals = groups[day];
 
-                double totalCurrent = 0;
+                double totalActual = 0;
                 double totalForecast = 0;
-                double peakCurrent = double.NaN;
+                double peakActual = double.NaN;
                 DateTime peakTime = day;
 
                 foreach (IntervalData interval in intervals)
                 {
-                    if (!double.IsNaN(interval.Current))
+                    if (!double.IsNaN(interval.Actual))
                     {
-                        totalCurrent += interval.Current * 0.5;
+                        totalActual += interval.Actual * 0.5;
 
-                        if (double.IsNaN(peakCurrent) || interval.Current > peakCurrent)
+                        if (double.IsNaN(peakActual) || interval.Actual > peakActual)
                         {
-                            peakCurrent = interval.Current;
+                            peakActual = interval.Actual;
                             peakTime = interval.Time;
                         }
                     }
@@ -129,15 +129,15 @@ namespace WCFClient.Readers
                     if (!double.IsNaN(interval.Forecast)) totalForecast += interval.Forecast * 0.5;
                 }
 
-                if (double.IsNaN(peakCurrent)) peakCurrent = 0;
+                if (double.IsNaN(peakActual)) peakActual = 0;
 
                 samples.Add(new DailyConsumptionSample
                 {
                     Date = day,
-                    TotalActualMWh = totalCurrent,
+                    TotalActualMWh = totalActual,
                     TotalForecastMWh = totalForecast,
                     PeakTime = peakTime,
-                    PeakActualMW = peakCurrent,
+                    PeakActualMW = peakActual,
                     CountryCode = _countryCode,
                     RowIndex = sampleIndex++
                 });
@@ -180,7 +180,7 @@ namespace WCFClient.Readers
         private class IntervalData
         {
             public DateTime Time { get; set; }
-            public double Current { get; set; }
+            public double Actual { get; set; }
             public double Forecast { get; set; }
         }
     }
