@@ -13,61 +13,61 @@ namespace WCFClient
     {
         static void Main(string[] args)
         {
-            string csvPutanja = ConfigurationManager.AppSettings["CsvFilePath"];
-            string kodDrzave = ConfigurationManager.AppSettings["CountryCode"];
-            string odbaceniPutanja = ConfigurationManager.AppSettings["RejectedFilePath"];
+            string csvPath = ConfigurationManager.AppSettings["CsvFilePath"];
+            string countryCode = ConfigurationManager.AppSettings["CountryCode"];
+            string rejectedPath = ConfigurationManager.AppSettings["RejectedFilePath"];
 
-            Console.WriteLine("Citanje CSV fajla: " + csvPutanja);
-            Console.WriteLine("Kod drzave: " + kodDrzave);
+            Console.WriteLine("Reading from CSV file: " + csvPath);
+            Console.WriteLine("Country Code: " + countryCode);
 
-            List<DailyConsumptionSample> uzorci = new List<DailyConsumptionSample>();
+            List<DailyConsumptionSample> samples = new List<DailyConsumptionSample>();
 
-            using (CsvReader reader = new CsvReader(csvPutanja, kodDrzave, odbaceniPutanja))
+            using (CsvReader reader = new CsvReader(csvPath, countryCode, rejectedPath))
             {
-                uzorci = reader.UcitajUzorke();
+                samples = reader.LoadSamples();
             }
 
-            Console.WriteLine("Ucitano uzoraka: " + uzorci.Count);
+            Console.WriteLine("Samples loaded count: " + samples.Count);
 
-            if (uzorci.Count == 0)
+            if (samples.Count == 0)
             {
-                Console.WriteLine("Nema podataka za slanje.");
+                Console.WriteLine("No data for sending.");
                 Console.ReadLine();
                 return;
             }
 
             SessionMeta meta = new SessionMeta
             {
-                CountryCode = kodDrzave,
-                YearMonth = uzorci[0].Date.ToString("yyyy-MM"),
-                SourceFileName = Path.GetFileName(csvPutanja),
-                TotalDays = uzorci.Count
+                CountryCode = countryCode,
+                YearMonth = samples[0].Date.ToString("yyyy-MM"),
+                SourceFileName = Path.GetFileName(csvPath),
+                TotalDays = samples.Count
             };
 
             using (ConsumptionProxy proxy = new ConsumptionProxy())
             {
                 proxy.StartSession(meta);
-                Console.WriteLine("Sesija zapoceta.");
+                Console.WriteLine("Session started.");
 
-                foreach (DailyConsumptionSample uzorak in uzorci)
+                foreach (DailyConsumptionSample sample in samples)
                 {
                     try
                     {
-                        proxy.PushSample(uzorak);
-                        Console.WriteLine("[" + uzorak.RowIndex + "] " + uzorak.Date.ToString("yyyy-MM-dd") + " - Actual: " + uzorak.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + uzorak.TotalForecastMWh.ToString("F2") + " MWh");
+                        proxy.PushSample(sample);
+                        Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
                     }
                     catch (System.ServiceModel.FaultException<ValidationFault> ex)
                     {
-                        Console.WriteLine("Greska validacije za " + uzorak.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
+                        Console.WriteLine("Validation error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
                     }
                     catch (System.ServiceModel.FaultException<DataFormatFault> ex)
                     {
-                        Console.WriteLine("Greska formata za " + uzorak.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
+                        Console.WriteLine("Format error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
                     }
                 }
 
                 proxy.EndSession();
-                Console.WriteLine("Sesija zavrsena.");
+                Console.WriteLine("Session ended.");
             }
 
             Console.ReadLine();

@@ -11,188 +11,177 @@ namespace WCFClient.Readers
     {
         private FileStream _fileStream;
         private StreamReader _streamReader;
-        private StreamWriter _odbaceniWriter;
+        private StreamWriter _rejectedWriter;
         private bool _disposed = false;
 
-        private readonly string _kodDrzave;
-        private int _indeksVremena;
-        private int _indeksAktuelnog;
-        private int _indeksPrognoze;
+        private readonly string _countryCode;
+        private int _timeIndex;
+        private int _currentIndex;
+        private int _forecastIndex;
 
-        public CsvReader(string putanjaFajla, string kodDrzave, string putanjaOdbacenih)
+        public CsvReader(string filePath, string countryCode, string rejectedPath)
         {
-            _kodDrzave = kodDrzave;
-            _fileStream = new FileStream(putanjaFajla, FileMode.Open, FileAccess.Read);
+            _countryCode = countryCode;
+            _fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             _streamReader = new StreamReader(_fileStream);
-            _odbaceniWriter = new StreamWriter(putanjaOdbacenih, false);
+            _rejectedWriter = new StreamWriter(rejectedPath, false);
 
-            ProcitajZaglavlje();
+            ReadHeader();
         }
 
-        private void ProcitajZaglavlje()
+        private void ReadHeader()
         {
-            string zaglavlje = _streamReader.ReadLine();
-            if (zaglavlje == null)
-                throw new InvalidDataException("CSV fajl je prazan.");
+            string header = _streamReader.ReadLine();
+            if(header == null) throw new InvalidDataException("CSV file is empty.");
 
-            string[] kolone = zaglavlje.Split(',');
+            string[] cols = header.Split(',');
 
-            _indeksVremena = PronadjiIndeks(kolone, "utc_timestamp");
-            _indeksAktuelnog = PronadjiIndeks(kolone, _kodDrzave + "_load_actual_entsoe_transparency");
-            _indeksPrognoze = PronadjiIndeks(kolone, _kodDrzave + "_load_forecast_entsoe_transparency");
+            _timeIndex = FindIndex(cols, "utc_timestamp");
+            _currentIndex = FindIndex(cols, _countryCode + "_load_actual_entsoe_transparency");
+            _forecastIndex = FindIndex(cols, _countryCode + "_load_forecast_entsoe_transparency");
 
-            if (_indeksVremena < 0)
-                throw new InvalidDataException("CSV ne sadrzi kolonu utc_timestamp.");
+            if (_timeIndex < 0) throw new InvalidDataException("CSV does not contain col utc_timestamp.");
 
-            if (_indeksAktuelnog < 0 || _indeksPrognoze < 0)
-                throw new InvalidDataException("CSV ne sadrzi kolone za drzavu: " + _kodDrzave);
+            if (_currentIndex < 0 || _forecastIndex < 0) throw new InvalidDataException("CSV does not contain cols for country: " + _countryCode);
         }
 
-        private static int PronadjiIndeks(string[] kolone, string naziv)
+        private static int FindIndex(string[] cols, string name)
         {
-            for (int i = 0; i < kolone.Length; i++)
+            for (int i = 0; i < cols.Length; i++)
             {
-                if (kolone[i].Trim() == naziv)
+                if (cols[i].Trim() == name)
                     return i;
             }
             return -1;
         }
 
-        public List<DailyConsumptionSample> UcitajUzorke()
+        public List<DailyConsumptionSample> LoadSamples()
         {
-            var dnevneGrupe = new Dictionary<DateTime, List<IntervalPodaci>>();
-            int brojReda = 2;
+            Dictionary<DateTime, List<IntervalData>> dailyGroups = new Dictionary<DateTime, List<IntervalData>>();
+            int rowNum = 2;
 
-            string linija;
-            while ((linija = _streamReader.ReadLine()) != null)
+            string line;
+            while ((line = _streamReader.ReadLine()) != null)
             {
-                if (string.IsNullOrWhiteSpace(linija))
+                if (string.IsNullOrWhiteSpace(line))
                 {
-                    brojReda++;
+                    rowNum++;
                     continue;
                 }
 
-                string[] delovi = linija.Split(',');
+                string[] parts = line.Split(',');
 
-                DateTime vreme;
-                if (!TryParsirajVreme(delovi[_indeksVremena], out vreme))
+                DateTime time;
+                if (!TryParseTime(parts[_timeIndex], out time))
                 {
-                    _odbaceniWriter.WriteLine(brojReda + "," + linija + ",Nije moguce parsirati timestamp");
-                    brojReda++;
+                    _rejectedWriter.WriteLine(line + "," + line + ", impossible to parse timestamp");
+                    rowNum++;
                     continue;
                 }
 
-                double aktuelno = ParsirajVrednost(delovi[_indeksAktuelnog]);
-                double prognoza = ParsirajVrednost(delovi[_indeksPrognoze]);
+                double current = ParseValue(parts[_currentIndex]);
+                double forecast = ParseValue(parts[_forecastIndex]);
 
-                if (double.IsNaN(aktuelno) && double.IsNaN(prognoza))
+                if (double.IsNaN(current) && double.IsNaN(forecast))
                 {
-                    _odbaceniWriter.WriteLine(brojReda + "," + linija + ",Oba polja su NaN");
-                    brojReda++;
+                    _rejectedWriter.WriteLine(rowNum + ", " + line + ", both fields are not a number");
+                    rowNum++;
                     continue;
                 }
 
-                DateTime dan = vreme.Date;
-                if (!dnevneGrupe.ContainsKey(dan))
-                    dnevneGrupe[dan] = new List<IntervalPodaci>();
+                DateTime day = time.Date;
+                if (!dailyGroups.ContainsKey(day)) dailyGroups[day] = new List<IntervalData>();
 
-                dnevneGrupe[dan].Add(new IntervalPodaci { Vreme = vreme, Aktuelno = aktuelno, Prognoza = prognoza });
-                brojReda++;
+                dailyGroups[day].Add(new IntervalData { Time = time, Current = current, Forecast = forecast });
+                rowNum++;
             }
 
-            return AgregirajDane(dnevneGrupe);
+            return AggregateDays(dailyGroups);
         }
 
-        private List<DailyConsumptionSample> AgregirajDane(Dictionary<DateTime, List<IntervalPodaci>> grupe)
+        private List<DailyConsumptionSample> AggregateDays(Dictionary<DateTime, List<IntervalData>> groups)
         {
-            var uzorci = new List<DailyConsumptionSample>();
-            int indeksUzorka = 1;
+            List<DailyConsumptionSample> samples = new List<DailyConsumptionSample>();
+            int sampleIndex = 1;
 
-            foreach (DateTime dan in grupe.Keys.OrderBy(d => d))
+            foreach (DateTime day in groups.Keys.OrderBy(d => d))
             {
-                List<IntervalPodaci> intervali = grupe[dan];
+                List<IntervalData> intervals = groups[day];
 
-                double ukupnoAktuelno = 0;
-                double ukupnoPrognoza = 0;
-                double vrhAktuelno = double.NaN;
-                DateTime vrhVreme = dan;
+                double totalCurrent = 0;
+                double totalForecast = 0;
+                double peakCurrent = double.NaN;
+                DateTime peakTime = day;
 
-                foreach (IntervalPodaci interval in intervali)
+                foreach (IntervalData interval in intervals)
                 {
-                    if (!double.IsNaN(interval.Aktuelno))
+                    if (!double.IsNaN(interval.Current))
                     {
-                        ukupnoAktuelno += interval.Aktuelno * 0.5;
+                        totalCurrent += interval.Current * 0.5;
 
-                        if (double.IsNaN(vrhAktuelno) || interval.Aktuelno > vrhAktuelno)
+                        if (double.IsNaN(peakCurrent) || interval.Current > peakCurrent)
                         {
-                            vrhAktuelno = interval.Aktuelno;
-                            vrhVreme = interval.Vreme;
+                            peakCurrent = interval.Current;
+                            peakTime = interval.Time;
                         }
                     }
 
-                    if (!double.IsNaN(interval.Prognoza))
-                        ukupnoPrognoza += interval.Prognoza * 0.5;
+                    if (!double.IsNaN(interval.Forecast)) totalForecast += interval.Forecast * 0.5;
                 }
 
-                if (double.IsNaN(vrhAktuelno))
-                    vrhAktuelno = 0;
+                if (double.IsNaN(peakCurrent)) peakCurrent = 0;
 
-                uzorci.Add(new DailyConsumptionSample
+                samples.Add(new DailyConsumptionSample
                 {
-                    Date = dan,
-                    TotalActualMWh = ukupnoAktuelno,
-                    TotalForecastMWh = ukupnoPrognoza,
-                    PeakTime = vrhVreme,
-                    PeakActualMW = vrhAktuelno,
-                    CountryCode = _kodDrzave,
-                    RowIndex = indeksUzorka++
+                    Date = day,
+                    TotalActualMWh = totalCurrent,
+                    TotalForecastMWh = totalForecast,
+                    PeakTime = peakTime,
+                    PeakActualMW = peakCurrent,
+                    CountryCode = _countryCode,
+                    RowIndex = sampleIndex++
                 });
             }
 
-            return uzorci;
+            return samples;
         }
 
-        private static bool TryParsirajVreme(string vrednost, out DateTime rezultat)
+        private static bool TryParseTime(string value, out DateTime result)
         {
-            vrednost = vrednost.Trim().Trim('"');
-            return DateTime.TryParse(vrednost, null, DateTimeStyles.None, out rezultat);
+            value = value.Trim().Trim('"');
+            return DateTime.TryParse(value, null, DateTimeStyles.None, out result);
         }
 
-        private static double ParsirajVrednost(string vrednost)
+        private static double ParseValue(string value)
         {
-            vrednost = vrednost.Trim().Trim('"');
-            if (string.IsNullOrEmpty(vrednost))
-                return double.NaN;
+            value = value.Trim().Trim('"');
+            if (string.IsNullOrEmpty(value)) return double.NaN;
 
-            double rezultat;
-            if (!double.TryParse(vrednost, NumberStyles.Float, CultureInfo.InvariantCulture, out rezultat))
-                return double.NaN;
+            double result;
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)) return double.NaN;
 
-            return rezultat;
+            return result;
         }
 
         public void Dispose()
         {
             if (_disposed) return;
 
-            if (_streamReader != null)
-                _streamReader.Dispose();
+            if (_streamReader != null) _streamReader.Dispose();
 
-            if (_fileStream != null)
-                _fileStream.Dispose();
+            if (_fileStream != null) _fileStream.Dispose();
 
-            if (_odbaceniWriter != null)
-                _odbaceniWriter.Dispose();
+            if (_rejectedWriter != null) _rejectedWriter.Dispose();
 
             _disposed = true;
             GC.SuppressFinalize(this);
         }
 
-        private class IntervalPodaci
+        private class IntervalData
         {
-            public DateTime Vreme { get; set; }
-            public double Aktuelno { get; set; }
-            public double Prognoza { get; set; }
+            public DateTime Time { get; set; }
+            public double Current { get; set; }
+            public double Forecast { get; set; }
         }
     }
 }

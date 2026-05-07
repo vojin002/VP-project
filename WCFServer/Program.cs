@@ -16,7 +16,7 @@ namespace WCFServer
             try
             {
                 host.Open();
-                Console.WriteLine("Servis radi....");
+                Console.WriteLine("Service working??....");
                 Console.ReadLine();
             }
             catch (Exception exc)

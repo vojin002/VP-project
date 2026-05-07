@@ -8,50 +8,47 @@ namespace WCFServer.Services
 {
     public class ConsumptionService : IConsumptionService
     {
-        private SessionMeta _trenutnaSesija;
+        private SessionMeta _currentSession;
 
         public void StartSession(SessionMeta meta)
         {
-            _trenutnaSesija = meta;
-            Console.WriteLine("[SERVER] Sesija zapoceta: " + meta.CountryCode + ", " + meta.YearMonth + ", ukupno dana: " + meta.TotalDays + ", fajl: " + meta.SourceFileName);
+            _currentSession = meta;
+            Console.WriteLine("SERVER: Session started: " + meta.CountryCode + ", " + meta.YearMonth + ", total days: " + meta.TotalDays + ", file: " + meta.SourceFileName);
         }
 
-        public void PushSample(DailyConsumptionSample uzorak)
+        public void PushSample(DailyConsumptionSample sample)
         {
-            ValidirajUzorak(uzorak);
-            Console.WriteLine("[SERVER] Primljeno [" + uzorak.RowIndex + "]: " + uzorak.Date.ToString("yyyy-MM-dd") + " | Actual: " + uzorak.TotalActualMWh.ToString("F2") + " MWh | Forecast: " + uzorak.TotalForecastMWh.ToString("F2") + " MWh");
+            ValidateSample(sample);
+            Console.WriteLine("SERVER: Received [" + sample.RowIndex + "]: " + sample.Date.ToString("yyyy-MM-dd") + " | Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh | Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
         }
 
         public void EndSession()
         {
-            Console.WriteLine("[SERVER] Sesija zavrsena za: " + _trenutnaSesija?.CountryCode);
-            _trenutnaSesija = null;
+            Console.WriteLine("SERVER: Session ended for: " + _currentSession?.CountryCode);
+            _currentSession = null;
         }
 
-        private void ValidirajUzorak(DailyConsumptionSample uzorak)
+        private void ValidateSample(DailyConsumptionSample sample)
         {
-            if (double.IsNaN(uzorak.TotalActualMWh) || double.IsNaN(uzorak.TotalForecastMWh))
+            if (double.IsNaN(sample.TotalActualMWh) || double.IsNaN(sample.TotalForecastMWh))
             {
-                throw new FaultException<DataFormatFault>(
-                    new DataFormatFault { Message = "NaN vrednost u uzorku za datum " + uzorak.Date.ToString("yyyy-MM-dd") + "." });
+                throw new FaultException<DataFormatFault>( new DataFormatFault { Message = "NaN value in sample for date " + sample.Date.ToString("yyyy-MM-dd")});
             }
 
-            if (uzorak.TotalActualMWh < 0)
+            if (sample.TotalActualMWh < 0)
             {
                 throw new FaultException<ValidationFault>(
-                    new ValidationFault { Message = "TotalActualMWh ne sme biti negativno za datum " + uzorak.Date.ToString("yyyy-MM-dd") + "." });
+                    new ValidationFault { Message = "TotalActualMWh cannot be negative for date " + sample.Date.ToString("yyyy-MM-dd")});
             }
 
-            if (uzorak.TotalForecastMWh < 0)
+            if (sample.TotalForecastMWh < 0)
             {
-                throw new FaultException<ValidationFault>(
-                    new ValidationFault { Message = "TotalForecastMWh ne sme biti negativno za datum " + uzorak.Date.ToString("yyyy-MM-dd") + "." });
+                throw new FaultException<ValidationFault>( new ValidationFault { Message = "TotalForecastMWh cannot be negative for " + sample.Date.ToString("yyyy-MM-dd")});
             }
 
-            if (uzorak.PeakTime.Date != uzorak.Date.Date)
+            if (sample.PeakTime.Date != sample.Date.Date)
             {
-                throw new FaultException<ValidationFault>(
-                    new ValidationFault { Message = "PeakTime (" + uzorak.PeakTime.ToString("yyyy-MM-dd") + ") nije unutar dana " + uzorak.Date.ToString("yyyy-MM-dd") + "." });
+                throw new FaultException<ValidationFault>( new ValidationFault { Message = "PeakTime (" + sample.PeakTime.ToString("yyyy-MM-dd") + ") is not inside day " + sample.Date.ToString("yyyy-MM-dd")});
             }
         }
     }
