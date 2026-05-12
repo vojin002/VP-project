@@ -74,7 +74,7 @@ namespace WCFClient.Readers
                 DateTime time;
                 if (!TryParseTime(parts[_timeIndex], out time))
                 {
-                    _rejectedWriter.WriteLine(line + "," + line + ", impossible to parse timestamp");
+                    _rejectedWriter.WriteLine(rowNum + "," + line + ", impossible to parse timestamp");
                     rowNum++;
                     continue;
                 }
