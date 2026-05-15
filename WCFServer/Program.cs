@@ -28,12 +28,17 @@ namespace WCFServer
                 if (host.State == CommunicationState.Faulted)
                 {
                     host.Abort();
+                    Console.WriteLine("Service closed successfully after connection was in a Faulted state");
                 }
                 else
                 {
                     host.Close();
+                    Console.WriteLine("Service closed successfully");
                 }
             }
+
+            Console.WriteLine("\n Exited... Press anything");
+            Console.ReadLine();
         }
     }
 }

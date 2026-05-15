@@ -48,29 +48,45 @@ namespace WCFClient.Proxies
 
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
             if (_disposed) return;
 
-            try
+            if(disposing)
             {
-                if (communicationObj != null)
+                try
                 {
-                    if (communicationObj.State == CommunicationState.Faulted)
+                    if(communicationObj != null)
                     {
-                        communicationObj.Abort();
-                    }
-                    else
-                    {
-                        communicationObj.Close();
+                        if (communicationObj.State == CommunicationState.Faulted)
+                        {
+                            communicationObj.Abort();
+                            Console.WriteLine("ConsumptionProxy aborted connection succesfully after it was in a Faulted state");
+                        }
+                        else
+                        {
+                            communicationObj.Close();
+                            Console.WriteLine("ConsumptionProxy closed successfully");
+                        }
                     }
                 }
-            }
-            catch
-            {
-                communicationObj.Abort();
+                catch
+                {
+                    communicationObj.Abort();
+                    Console.WriteLine("ConsumptionProxy threw an Error: Communication aborted successfully");
+                }
             }
 
             _disposed = true;
-            GC.SuppressFinalize(this);
+        }
+
+        ~ConsumptionProxy()
+        {
+            Dispose(false);
         }
     }
 }

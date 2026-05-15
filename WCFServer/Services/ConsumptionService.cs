@@ -1,4 +1,5 @@
 using Common.Contracts;
+using Common.Events;
 using Common.Faults;
 using Common.Models;
 using System;
@@ -6,11 +7,21 @@ using System.ServiceModel;
 
 namespace WCFServer.Services
 {
+    public delegate void CustomEventHandler<CustomEventArgs>(object sender, CustomEventArgs args);
+
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single)]
     public class ConsumptionService : IConsumptionService
     {
+        private SessionMeta _currentSession;
+
+        public event CustomEventHandler<TransferStartedEventArgs> OnTransferStarted;
+        public event CustomEventHandler<SampleReceivedEventArgs> OnSampleReceived;
+        public event CustomEventHandler<WarningRaisedEventArgs> OnWarningRaised;
+        public event CustomEventHandler<TransferCompletedEventArgs> OnTransferCompleted;
 
         public void StartSession(SessionMeta meta)
         {
+            _currentSession = meta;
             Console.WriteLine("SERVER: Session started: " + meta.CountryCode + ", " + meta.YearMonth + ", total days: " + meta.TotalDays + ", file: " + meta.SourceFileName);
         }
 
@@ -22,7 +33,7 @@ namespace WCFServer.Services
 
         public void EndSession()
         {
-            Console.WriteLine("SERVER: Session ended.");
+            Console.WriteLine("SERVER: Session ended for CountryCode: " + _currentSession.CountryCode);
         }
 
         private void ValidateSample(DailyConsumptionSample sample)

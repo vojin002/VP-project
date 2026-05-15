@@ -165,16 +165,26 @@ namespace WCFClient.Readers
 
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
             if (_disposed) return;
 
-            if (_streamReader != null) _streamReader.Dispose();
-
-            if (_fileStream != null) _fileStream.Dispose();
-
-            if (_rejectedWriter != null) _rejectedWriter.Dispose();
+            if(disposing)
+            {
+                if (_streamReader != null) _streamReader.Dispose(); Console.WriteLine("StreamReader: reader closed successfully");
+                if (_fileStream != null) _fileStream.Dispose(); Console.WriteLine("FileStream: fileStream closed successfully");
+                if (_rejectedWriter != null) _rejectedWriter.Dispose(); Console.WriteLine("StreamReader: rejectedWriter closed successfully");
+            }
 
             _disposed = true;
-            GC.SuppressFinalize(this);
+        }
+        ~CsvReader()
+        {
+            Dispose(false);
         }
 
         private class IntervalData

@@ -48,6 +48,11 @@
     <Compile Include="Faults\ValidationFault.cs" />
     <Compile Include="Models\DailyConsumptionSample.cs" />
     <Compile Include="Models\SessionMeta.cs" />
+    <Compile Include="Enums\WarningType.cs" />
+    <Compile Include="Events\TransferStartedEventArgs.cs" />
+    <Compile Include="Events\SampleReceivedEventArgs.cs" />
+    <Compile Include="Events\TransferCompletedEventArgs.cs" />
+    <Compile Include="Events\WarningRaisedEventArgs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
