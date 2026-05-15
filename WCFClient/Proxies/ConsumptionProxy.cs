@@ -15,11 +15,15 @@ namespace WCFClient.Proxies
         private ICommunicationObject communicationObj;
         private bool _disposed = false;
 
+        private int _pushedNumber = 0;
+        private readonly int CONNECTION_BREAK_TARGET;
+
         public ConsumptionProxy()
         {
             ChannelFactory<IConsumptionService> factory = new ChannelFactory<IConsumptionService>("WCFClient");
             client = factory.CreateChannel();
             communicationObj = (ICommunicationObject)client;
+            CONNECTION_BREAK_TARGET = new Random().Next(1, 3000);
         }
 
         public void StartSession(SessionMeta meta)
@@ -29,7 +33,12 @@ namespace WCFClient.Proxies
 
         public void PushSample(DailyConsumptionSample sample)
         {
+            if(_pushedNumber == CONNECTION_BREAK_TARGET)
+            {
+                throw new CommunicationException("Simulated connection break after " + _pushedNumber + " pushed samples");
+            }
             client.PushSample(sample);
+            _pushedNumber++;
         }
 
         public void EndSession()

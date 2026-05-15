@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
+using System.ServiceModel;
 using WCFClient.Proxies;
 using WCFClient.Readers;
 
@@ -44,32 +45,58 @@ namespace WCFClient
                 TotalDays = samples.Count
             };
 
+            bool failedConnection = false;
             using (ConsumptionProxy proxy = new ConsumptionProxy())
             {
-                proxy.StartSession(meta);
-                Console.WriteLine("Session started.");
-
-                foreach (DailyConsumptionSample sample in samples)
+                try
                 {
-                    try
+                    proxy.StartSession(meta);
+                    Console.WriteLine("Session started.");
+
+                    foreach (DailyConsumptionSample sample in samples)
                     {
-                        proxy.PushSample(sample);
-                        Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
+                        try
+                        {
+                            proxy.PushSample(sample);
+                            Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
+                        }
+                        catch (System.ServiceModel.FaultException<ValidationFault> ex)
+                        {
+                            Console.WriteLine("Validation error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
+                        }
+                        catch (System.ServiceModel.FaultException<DataFormatFault> ex)
+                        {
+                            Console.WriteLine("Format error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
+                        }
+                        catch (CommunicationException exc)
+                        {
+                            Console.WriteLine("Communication broke: " + exc.Message + "\nStopped sending samples.");
+                            failedConnection = true;
+                            break;
+                        }
                     }
-                    catch (System.ServiceModel.FaultException<ValidationFault> ex)
+
+                    if(!failedConnection)
                     {
-                        Console.WriteLine("Validation error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
-                    }
-                    catch (System.ServiceModel.FaultException<DataFormatFault> ex)
-                    {
-                        Console.WriteLine("Format error: " + sample.Date.ToString("yyyy-MM-dd") + ": " + ex.Detail.Message);
+                        try
+                        {
+                            proxy.EndSession();
+                            Console.WriteLine("Session ended.");
+                        }
+                        catch (CommunicationException exc) 
+                        {
+                            Console.WriteLine("SessionEnd failed: " + exc.Message);
+                        }
                     }
                 }
+                catch(CommunicationException exc)
+                {
+                    Console.WriteLine("SessionStart failed: " + exc.Message);
+                }
 
-                proxy.EndSession();
-                Console.WriteLine("Session ended.");
             }
 
+            Console.WriteLine("Exiting client... press anything >> ");
             Console.ReadLine();
         }
     }

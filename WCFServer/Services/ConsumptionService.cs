@@ -8,11 +8,9 @@ namespace WCFServer.Services
 {
     public class ConsumptionService : IConsumptionService
     {
-        private SessionMeta _currentSession;
 
         public void StartSession(SessionMeta meta)
         {
-            _currentSession = meta;
             Console.WriteLine("SERVER: Session started: " + meta.CountryCode + ", " + meta.YearMonth + ", total days: " + meta.TotalDays + ", file: " + meta.SourceFileName);
         }
 
@@ -24,8 +22,7 @@ namespace WCFServer.Services
 
         public void EndSession()
         {
-            Console.WriteLine("SERVER: Session ended for: " + _currentSession?.CountryCode);
-            _currentSession = null;
+            Console.WriteLine("SERVER: Session ended.");
         }
 
         private void ValidateSample(DailyConsumptionSample sample)
