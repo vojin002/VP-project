@@ -30,7 +30,7 @@ namespace WCFServer.Services
         {
             Console.WriteLine($"Transfering... {sample.Date}");
             ValidateSample(sample);
-            OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Valid, ""));
+            OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Valid, _currentSession, ""));
             //Console.WriteLine("SERVER: Received [" + sample.RowIndex + "]: " + sample.Date.ToString("yyyy-MM-dd") + " | Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh | Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
         }
 
@@ -44,27 +44,32 @@ namespace WCFServer.Services
         {
             if (double.IsNaN(sample.TotalActualMWh) || double.IsNaN(sample.TotalForecastMWh))
             {
-                OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, "NaN value for date"));
+                ReportSampleValidationFailed(sample, "NaN value for date");
                 throw new FaultException<DataFormatFault>( new DataFormatFault { Message = "NaN value in sample for date " + sample.Date.ToString("yyyy-MM-dd")});
             }
 
             if (sample.TotalActualMWh < 0)
             {
-                OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, "Negative TotalAcutalMWh"));
+                ReportSampleValidationFailed(sample, "Negative TotalAcutalMWh");
                 throw new FaultException<ValidationFault>(new ValidationFault { Message = "TotalActualMWh cannot be negative for date " + sample.Date.ToString("yyyy-MM-dd") });
             }
 
             if (sample.TotalForecastMWh < 0)
             {
-                OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, "Negative TotalForecastMWh"));
+                ReportSampleValidationFailed(sample, "Negative TotalForecastMWh");
                 throw new FaultException<ValidationFault>( new ValidationFault { Message = "TotalForecastMWh cannot be negative for " + sample.Date.ToString("yyyy-MM-dd")});
             }
 
             if (sample.PeakTime.Date != sample.Date.Date)
             {
-                OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, "Wrong day for PeakTime"));
+                ReportSampleValidationFailed(sample, "Wrong day for PeakTime");
                 throw new FaultException<ValidationFault>( new ValidationFault { Message = "PeakTime (" + sample.PeakTime.ToString("yyyy-MM-dd") + ") is not inside day " + sample.Date.ToString("yyyy-MM-dd")});
             }
+        }
+
+        private void ReportSampleValidationFailed(DailyConsumptionSample sample, string reason)
+        {
+            OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, _currentSession, reason));
         }
     }
 }

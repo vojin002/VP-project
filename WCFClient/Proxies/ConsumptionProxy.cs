@@ -2,6 +2,7 @@
 using Common.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
@@ -17,13 +18,14 @@ namespace WCFClient.Proxies
 
         private int _pushedNumber = 0;
         private readonly int CONNECTION_BREAK_TARGET;
+        private readonly int[] CONNECTION_BREAK_TARGET_SCOPE = new int[] { int.MaxValue-1, int.MaxValue };
 
         public ConsumptionProxy()
         {
             ChannelFactory<IConsumptionService> factory = new ChannelFactory<IConsumptionService>("WCFClient");
             client = factory.CreateChannel();
             communicationObj = (ICommunicationObject)client;
-            CONNECTION_BREAK_TARGET = new Random().Next(1, 3000);
+            CONNECTION_BREAK_TARGET = new Random().Next(CONNECTION_BREAK_TARGET_SCOPE[0], CONNECTION_BREAK_TARGET_SCOPE[1]);
         }
 
         public void StartSession(SessionMeta meta)
@@ -37,7 +39,11 @@ namespace WCFClient.Proxies
             {
                 throw new CommunicationException("Simulated connection break after " + _pushedNumber + " pushed samples");
             }
+
+            Stopwatch watch = Stopwatch.StartNew();
             client.PushSample(sample);
+            watch.Stop();
+            Console.WriteLine($"Sample {sample.Date:yyyy-MM-dd} sent, Latency: {watch.ElapsedMilliseconds} ms");
             _pushedNumber++;
         }
 

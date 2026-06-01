@@ -14,12 +14,14 @@ namespace Common.Events
     {
         public DailyConsumptionSample Sample { get; set; }
         public ReceivedSampleState SampleState { get; set; }
+        public SessionMeta SessionMeta { get; set; }
         public string Note { get; set; } = string.Empty;
 
-        public SampleReceivedEventArgs(DailyConsumptionSample sample, ReceivedSampleState sampleState, string note)
+        public SampleReceivedEventArgs(DailyConsumptionSample sample, ReceivedSampleState sampleState, SessionMeta sessionMeta, string note)
         {
             Sample = sample;
             SampleState = sampleState;
+            SessionMeta = sessionMeta;
             Note = note;
         }
     }

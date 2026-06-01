@@ -58,7 +58,7 @@ namespace WCFClient
                         try
                         {
                             proxy.PushSample(sample);
-                            Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
+                            //Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh");
                         }
                         catch (System.ServiceModel.FaultException<ValidationFault> ex)
                         {
