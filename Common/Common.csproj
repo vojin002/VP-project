@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Contracts\IConsumptionService.cs" />
+    <Compile Include="Enums\ReceivedSampleState.cs" />
     <Compile Include="Faults\DataFormatFault.cs" />
     <Compile Include="Faults\ValidationFault.cs" />
     <Compile Include="Models\DailyConsumptionSample.cs" />

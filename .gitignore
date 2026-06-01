@@ -362,6 +362,3 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Data files - ignore generated CSVs, keep source data
-*.csv
-!Data/*.csv

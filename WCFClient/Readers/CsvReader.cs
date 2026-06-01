@@ -175,9 +175,24 @@ namespace WCFClient.Readers
 
             if(disposing)
             {
-                if (_streamReader != null) _streamReader.Dispose(); Console.WriteLine("StreamReader: reader closed successfully");
-                if (_fileStream != null) _fileStream.Dispose(); Console.WriteLine("FileStream: fileStream closed successfully");
-                if (_rejectedWriter != null) _rejectedWriter.Dispose(); Console.WriteLine("StreamReader: rejectedWriter closed successfully");
+                if (_streamReader != null)
+                {
+                    _streamReader.Dispose();
+                    Console.WriteLine("StreamReader: reader closed successfully");
+                }
+               
+                if (_fileStream != null)
+                {
+                    _fileStream.Dispose();
+                    Console.WriteLine("FileStream: fileStream closed successfully");
+                }
+
+                if (_rejectedWriter != null) 
+                {
+                    _rejectedWriter.Dispose();
+                    Console.WriteLine("StreamReader: rejectedWriter closed successfully");
+                }
+                
             }
 
             _disposed = true;
