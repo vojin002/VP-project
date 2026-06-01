@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
@@ -45,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Listeners\FileStorageListener.cs" />
+    <Compile Include="Listeners\WarningHandlingListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\ConsumptionService.cs" />

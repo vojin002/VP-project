@@ -19,10 +19,13 @@ namespace WCFServer
             ConsumptionService service = new ConsumptionService();
 
             FileStorageListener fileStorageListener = new FileStorageListener(rootFolder);
+            WarningHandlingListener warningHandlingListener = new WarningHandlingListener();  
 
             service.OnTransferStarted += fileStorageListener.HandleTransferStarted;
             service.OnSampleReceived += fileStorageListener.HandleSampleReceived;
             service.OnTransferCompleted += fileStorageListener.HandleTransferCompleted;
+
+            service.OnWarningRaised += warningHandlingListener.HandleWarningRaised;
 
             ServiceHost host = new ServiceHost(service);
             try

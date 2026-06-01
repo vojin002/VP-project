@@ -4,6 +4,7 @@ using Common.Events;
 using Common.Faults;
 using Common.Models;
 using System;
+using System.Configuration;
 using System.ServiceModel;
 
 namespace WCFServer.Services
@@ -19,6 +20,19 @@ namespace WCFServer.Services
         public event CustomEventHandler<SampleReceivedEventArgs> OnSampleReceived;
         public event CustomEventHandler<WarningRaisedEventArgs> OnWarningRaised;
         public event CustomEventHandler<TransferCompletedEventArgs> OnTransferCompleted;
+
+        private readonly double _forecastDeviationPct;
+        private readonly double _outOfBandPct;
+        private readonly double _riseWindowDays;
+        private readonly double _riseThresholdMWh;
+
+        public ConsumptionService()
+        {
+            _forecastDeviationPct = double.Parse(ConfigurationManager.AppSettings["ForecastDeviationPct"]);
+            _outOfBandPct = double.Parse(ConfigurationManager.AppSettings["OutOfBandPct"]);
+            _riseWindowDays = double.Parse(ConfigurationManager.AppSettings["RiseWindowDays"]);
+            _riseThresholdMWh = double.Parse(ConfigurationManager.AppSettings["RiseThresholdMWh"]);
+        }
 
         public void StartSession(SessionMeta meta)
         {
@@ -71,5 +85,7 @@ namespace WCFServer.Services
         {
             OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs(sample, ReceivedSampleState.Rejected, _currentSession, reason));
         }
+
+        // TODO: Make logic for  analytics and raise events with right warning type using the readonly vars loaded from configmanager
     }
 }

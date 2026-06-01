@@ -43,7 +43,7 @@ namespace WCFClient.Proxies
             Stopwatch watch = Stopwatch.StartNew();
             client.PushSample(sample);
             watch.Stop();
-            Console.WriteLine($"Sample {sample.Date:yyyy-MM-dd} sent, Latency: {watch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Sample {sample.Date:yyyy-MM-dd},{sample.CountryCode} sent, Latency: {watch.ElapsedMilliseconds} ms");
             _pushedNumber++;
         }
 
