@@ -1,4 +1,4 @@
-﻿using Common.Enums;
+using Common.Enums;
 using Common.Models;
 using System;
 using System.Collections.Generic;
@@ -13,12 +13,14 @@ namespace Common.Events
     public class WarningRaisedEventArgs : EventArgs
     {
         public WarningType WarningType { get; set; }
-        public DailyConsumptionSample Sample { get; set;  }
+        public DailyConsumptionSample Sample { get; set; }
+        public double DeviationPct { get; set; }
 
-        public WarningRaisedEventArgs(WarningType warningType, DailyConsumptionSample sample)
+        public WarningRaisedEventArgs(WarningType warningType, DailyConsumptionSample sample, double deviationPct = 0)
         {
             WarningType = warningType;
             Sample = sample;
+            DeviationPct = deviationPct;
         }
     }
 }

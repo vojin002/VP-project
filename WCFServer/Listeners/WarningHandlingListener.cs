@@ -1,4 +1,5 @@
-﻿using Common.Events;
+using Common.Enums;
+using Common.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +10,16 @@ namespace WCFServer.Listeners
 {
     public class WarningHandlingListener
     {
-        public WarningHandlingListener() { }  
+        public WarningHandlingListener() { }
 
         public void HandleWarningRaised(object sender, WarningRaisedEventArgs args)
         {
-            // TODO: handle warnings raised
-            Console.WriteLine("Warning occured");
+            string msg = "WARNING [" + args.WarningType + "]: " + args.Sample.Date.ToString("yyyy-MM-dd") + " | " + args.Sample.CountryCode;
+
+            if (args.WarningType == WarningType.ForecastDeviationWarning)
+                msg += " | Deviation: " + args.DeviationPct.ToString("F2") + "%";
+
+            Console.WriteLine(msg);
         }
     }
 }

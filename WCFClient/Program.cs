@@ -57,7 +57,10 @@ namespace WCFClient
                     {
                         try
                         {
+                            DateTime sendTime = DateTime.Now;
                             proxy.PushSample(sample);
+                            TimeSpan elapsed = DateTime.Now - sendTime;
+                            Console.WriteLine("[" + sample.RowIndex + "] " + sample.Date.ToString("yyyy-MM-dd") + "  Actual: " + sample.TotalActualMWh.ToString("F2") + " MWh, Forecast: " + sample.TotalForecastMWh.ToString("F2") + " MWh | Sent in: " + elapsed.TotalMilliseconds.ToString("F1") + " ms");
                         }
                         catch (System.ServiceModel.FaultException<ValidationFault> ex)
                         {
