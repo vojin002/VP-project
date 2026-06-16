@@ -33,16 +33,10 @@ namespace WCFServer.Listeners
             }
 
             string sessionFilePath = Path.Combine(folderPath, _sessionFileName);
-            if(!File.Exists(sessionFilePath))
-            {
-                File.WriteAllText(sessionFilePath, "Date,TotalActualMWh,TotalForecastMWh" + Environment.NewLine);
-            }
-
+            File.WriteAllText(sessionFilePath, "Date,TotalActualMWh,TotalForecastMWh" + Environment.NewLine);
+            
             string rejectsFilePath = Path.Combine(folderPath, _rejectsFileName);
-            if (!File.Exists(rejectsFilePath))
-            {
-                File.WriteAllText(rejectsFilePath, "Date,TotalActualMWh,TotalForecastMWh,Reason" + Environment.NewLine);
-            }
+            File.WriteAllText(rejectsFilePath, "Date,TotalActualMWh,TotalForecastMWh,Reason" + Environment.NewLine);
 
             Console.WriteLine("SERVER: Session started: " + args.SessionMeta.CountryCode + ", " + args.SessionMeta.YearMonth + ", total days: " + args.SessionMeta.TotalDays + ", file: " + args.SessionMeta.SourceFileName);
         }

@@ -122,8 +122,7 @@ namespace WCFServer.Services
             _actualMeanSum += sample.TotalActualMWh;
 
             _recentActual.Add(sample.TotalActualMWh);
-            if (_recentActual.Count > _riseWindowDays + 1)
-                _recentActual.RemoveAt(0);
+            if (_recentActual.Count > _riseWindowDays + 1) _recentActual.RemoveAt(0);
 
             if (_recentActual.Count == _riseWindowDays + 1)
             {
